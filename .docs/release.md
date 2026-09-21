@@ -42,14 +42,14 @@
 
 > changelogithub 默认只收 `feat` / `fix` / `perf` 这类类型，`docs` / `ci` / `build` / `test` / `chore` 的提交**不会出现在 Release notes 里**。v1.1.0 就是这样：7 个提交只露出 2 条。想让它们出现需要额外配置。
 
-`npm publish` 刻意**留在本地**：CI 里没有 npm 凭据，所以产物没有 provenance 证明。迁到 npm Trusted Publishing 是已知的待办（ROADMAP CTV-23），不是疏漏。
+`npm publish` 刻意**留在本地**：CI 里没有 npm 凭据，所以产物没有 provenance 证明。迁到 npm Trusted Publishing **已由 Hubery 决定不做**（CTV-23，2026-09-09 放弃，理由见 [backlog.md](./backlog.md)），不是疏漏。
 
 两个 workflow，门禁命令完全相同（`typecheck` / `lint` / `test` / `build` / `test:e2e`），刻意各写一遍而不抽成 `workflow_call`——五行的重复不值得引入一层间接：
 
 ⚠️ **门禁在两个 workflow 里各写一遍是刻意的，但同一棵树不该被跑两遍。** 2026-09-21 实测过代价：
 `cc4f8b0`（v1.10.0）在 Actions 上跑了**三轮**完整门禁——CI on `main`、Release on tag、事后快进 `dev`
 再一轮，命令一字不差；日常提交也稳定跑两轮（`4fa4519` / `b719f22` / `b11996e` 三组 run 的 SHA 逐一相同）。
-CTV-55 后降到日常一轮、发版一轮。**`concurrency` 救不了这个**：`refs/heads/main`、`refs/heads/dev`
+CTV-55 后降到日常一轮、发版一轮，**并已在 v1.11.0 那次发版上验证**：`99405a6`（`chore: release v1.11.0`）在 `ci.yml` 上 **skipped**，`main` 上没有产生任何 run，整棵树只剩 `release.yml` 的那一轮（run 35573225532 success）。**`concurrency` 救不了这个**：`refs/heads/main`、`refs/heads/dev`
 和 tag 的 `github.ref` 互不相同，分不进同一个组。
 
 - **`ci.yml`**：push 到 `dev` 以及所有 PR 触发。检查当前 head，所以不带 `ref`、不带 `fetch-depth: 0`。

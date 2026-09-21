@@ -104,5 +104,7 @@
   dev server 正常启动、首页 200，只有真的请求 `/api` 才返回 502，且之后 server 仍存活。故保留。
 
 两个 vitesse 模板曾经也在这里，因为 `catalog:` 没有定义源而 100% 装不上，v1.1.0 下架、CTV-30 删除目录
-并改为 `custom-*` 转交上游，现在仓库里已经没有它们的副本了。
+并改为 `custom-*` 转交上游。**CTV-47 把那两个转交项也删了**（full 停更 7 个月且 catalog 仍锁 `vite ^7.3.1`，
+lite 锁 `pnpm@12.3.4` 会让 pnpm 10 用户 ENOEXEC 退 1），随 v1.11.0 发布，属 breaking change。
+现在仓库里与注册表里都不再有 vitesse 的任何痕迹。
 

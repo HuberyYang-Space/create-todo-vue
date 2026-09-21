@@ -83,7 +83,10 @@
 
 **`src/constants/index.ts`** 持有四样东西：
 
-- `FRAMEWORKS`：两层树，`Framework`（vanilla / vue / lit，共 3 个）→ `variants: FrameworkVariant[]`。vitesse 不是顶层框架，它是 vue 底下的两个 `custom-*` 变体（CTV-30）。每个节点自带 picocolors 的 `color` 函数，终端标题由 `getLabel()` 渲染。
+- `FRAMEWORKS`：两层树，`Framework`（vanilla / vue / lit，共 3 个）→ `variants: FrameworkVariant[]`。`custom-*` 不是顶层框架，它们是 vue 底下的转交变体（曾经还有两个 vitesse，CTV-47 已删）。每个节点自带 picocolors 的 `color` 函数，终端标题由 `getLabel()` 渲染。
+  - `getLabel()` 的 `link` 渲染成**下划线的裸 URL、不带括号**，跟在 `display` 后面。带 `link` 的目前是 `custom-nuxt` / `custom-vike-vue` / `vue-dev`（CTV-58）。
+  - **`↗` 是写在 `display` 里的约定符号，专表「转交给上游脚手架」**，所以只挂在 `custom-*` 上；`vue-dev` 虽然也亮出上游仓库，但它是内置模板，**不加这个箭头**。加了会让人以为选它会联网转交。
+  - 选项那一行末尾带括号的那截是 clack 的 `hint`，内容是**转交命令**、且只在选中时显示，与 `link` 无关。
 - `TEMPLATES`：从 `FRAMEWORKS` 派生（flatMap 出所有 variant 名），用于校验 `-t` 传进来的值。
 - `HELP_MESSAGE`：「参数」那一块仍是手写的（有 `ARGV_OPTIONS ↔ HELP_MESSAGE` 双向断言盯着）；**「可用模板」那一块已由 `FRAMEWORKS` 派生**（CTV-16），渲染在 `src/help.ts`。
 - `RENAME_FILES`：拷贝时的文件名映射，目前只有 `_gitignore` → `.gitignore`。

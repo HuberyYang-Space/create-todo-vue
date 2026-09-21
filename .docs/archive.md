@@ -140,3 +140,51 @@ vitesse 从「仓库内置两份坏副本」改成「转交上游」，并补全
 |:--:|:--|:--|:--|:--:|
 | ✅ | CTV-45 | **TUI 里看不出跑的是哪个版本** | 2026-09-10 排查「vanilla-ts + pnpm 装依赖失败」时暴露：Hubery 手动测到的其实是 pnpm 因默认 `minimumReleaseAge`（24h 内发布的版本一律不取）回退到的 **v1.6.1**——那版模板还锁着 `vite ^7.3.1`，pnpm 11 遇未放行的 esbuild build script 直接退 1（CTV-42 修过的坑），而线上 `latest` 当时已是 v1.9.0。**CLI 交互界面从头到尾不报版本号**，框顶只有 `create-todo-vue`，于是在旧版上白测一轮无从察觉。**做法**（2026-09-10 Hubery 选定「同行 + 灰色弱化」）：`plan.ts` 新增纯函数 `buildIntroTitle(version)`，intro 标题改成 `create-todo-vue ` + dim(`v1.9.0`)；`getVersion()` 读不到时返回 `'unknown'`，**此时不显示版本后缀**——`vunknown` 长得像个真版本号，比不显示更糟。`color` 做成参数而不是写死 `dim`（与 `getLabel()` 同形）：picocolors 在非 TTY 下不注入转义码，写死的话「版本那段确实被弱化了」根本钉不住——变异 M4 正是靠这个参数才被捕获。**2026-09-10 完成**：单测 249 → 253、E2E 98 → 100，typecheck / lint / test / test:e2e 全退 0。**6 个变异 6 个被捕获**，其中 M6（接线传错版本号）**只打红「与 `--version` 一致」那条、形状断言仍绿**，证明两条 E2E 缺一不可。真实运行实测：`┌  create-todo-vue v1.9.0`，强制开色时 dim 只包住 `v1.9.0`（`ESC[2m…ESC[22m`），`--version` 仍是干净的 6 字节（CTV-36 那条不变量没破） | 小 |
 
+## 已发布 · v1.11.0（2026-09-21）
+
+一天之内攒出来的四件事：模板阵容现代化（含一处 breaking）、同环境重复检测去冗余、
+仓库迁到组织后的元数据同步，以及照搬 todo-scripts 的 TUI 字标。
+**也是 `CLAUDE.md` 与整个 `.docs/` 纳入版本管理后的第一个版本**——实测 tarball 里两者都不在，`files` 挡住了。
+
+### 模板体系 · 阵容现代化
+
+起因是 2026-09-21 实测 vitesse 装不上，顺势重估整个阵容。设计见
+[specs/2026-09-21-template-lineup-modernization-design.md](./specs/2026-09-21-template-lineup-modernization-design.md)。
+
+| 状态 | ID | 条目 | 说明 | 成本 |
+|:--:|:--|:--|:--|:--:|
+| ✅ | CTV-46 | **六个内置模板依赖对齐官方 create-vite** | 8 处漂移，其中 `typescript ~5.9.3→~6.0.2` 跨大版本、`@vue/tsconfig ^0.8.1→^0.9.1` 因 0.x 的 `^` 不跨 minor 而锁死。**`@types/node` 只升到 `^24.13.5` 不升 26**——主版本要跟 `engines` 对齐。必须走四条验证标准第三条：真装真构建、npm 与 pnpm 都跑 | 中 |
+| ✅ | CTV-47 | **删除 `custom-vitesse` / `custom-vitesse-lite`** | full 停更 7 个月且 catalog 仍锁 `vite ^7.3.1`；lite 锁 `pnpm@12.3.4`，pnpm 10 用户切换时 ENOEXEC 退 1。官方 create-vite 也不列 vitesse。⚠️ **breaking change**，发版时定 major 还是 minor | 小 |
+| ✅ | CTV-48 | **`pnpm sync:check` 防漂移脚本** | 拉官方六个模板的 `package.json` 打印逐项 diff。联网，只手动跑，**不进 CI 也不进 E2E**。没有它三个月后会再漂一次——本轮的 8 处漂移就是这么攒出来的 | 小 |
+
+### 工具链 · 同环境重复检测去冗余
+
+Hubery 2026-09-21 指派，起因是 `@huberyyang/todo-scripts` 做过同类调整（HB-37 / HB-38）。
+**边界由 Hubery 划定：只砍同一个环境内部的重复**——「本地跑一遍 + CI 再跑一遍」是刻意的跨环境
+双保险，予以保留，所以 todo-scripts 的 HB-38（pre-commit 瘦身成只跑 `eslint --fix`）**本仓库不做**。
+
+| 状态 | ID | 条目 | 说明 | 成本 |
+|:--:|:--|:--|:--|:--:|
+| ✅ | CTV-54 | **`bumpp --no-verify`** | `build:prod` 跑完全量门禁十几秒后，`bumpp` 的版本号提交触发 `pre-commit`，把 typecheck + lint:fix + test 原样再跑一遍（本机实测 ≈ **8.1s**），而 diff 只有一个版本号字段。`lint-staged` 的 glob 是 `'*'`，`package.json` 必然匹配，躲不掉。与 todo-scripts HB-37 同款 | 小 |
+| ✅ | CTV-55 | **CI 同一 SHA 不再跑 2~3 轮** | 实测 `cc4f8b0`（v1.10.0）在 Actions 上跑了**三轮**完整门禁，日常提交稳定两轮。三处改动：`ci.yml` 的 push 从 `[main, dev]` 收成 `[dev]`（历史**零 merge commit**，到达 `main` 的树都已在同一 SHA 下检查过）、加 `concurrency` + `cancel-in-progress`、job 上加 `if` 跳过 `bumpp` 的发版提交。**`concurrency` 单独救不了**：三种 `github.ref` 互不相同，分不进同一组 | 小 |
+
+⚠️ **CTV-55 的代价，仍然成立**：绕过 `dev` 直推 `main` 的 hotfix 将没有 CI。`main` 没有分支
+保护，这条靠约定而非机制兜着。发版那棵树仍有 `release.yml` 的 tag 门禁接住，不会裸奔。
+
+✅ **CTV-55 在本次发版上拿到了真实现场**：`99405a6`（`chore: release v1.11.0`）在 `ci.yml` 上
+**skipped**，且 `main` 上没有产生任何 run（最后一条 main run 还停在改动前的 `4fa4519`）。
+同一棵树从过去的三轮门禁降到只剩 `release.yml` 的那一轮。
+
+### 仓库 · 归属迁移
+
+| 状态 | ID | 条目 | 说明 | 成本 |
+|:--:|:--|:--|:--|:--:|
+| ✅ | CTV-56 | **仓库迁到组织后的元数据同步** | Hubery 把仓库迁到了组织 `HuberyYang-Space`，旧路径 `Hub-yang/create-todo-vue` 只剩重定向。同步 6 处：`package.json` 的 `homepage`/`repository`/`bugs`、README 两个徽章（含 shields 的 workflow status 路径）、`src/constants` 的 `REPO_URL`。**刻意不动的两类**：README 署名 `https://github.com/Hub-yang`（个人账号仍在），以及所有 `Hub-yang/my-vue-dev-template` 引用（那个仓库没迁，`gh api` 核实过）。顺带改掉 [backlog.md](./backlog.md) 里 CTV-23 那句已失效的「确认仓库没转移过」 | 小 |
+
+### 界面 · 品牌观感
+
+| 状态 | ID | 条目 | 说明 | 成本 |
+|:--:|:--|:--|:--|:--:|
+| ✅ | CTV-49 | **照搬 todo-scripts 的 TUI 字标** | `main()` 开头打 ANSI Shadow 渲染的 `TODO-VUE` 渐变字标 + `v1.10.0 - HuberyYang` 尾行，观感与 `@huberyyang/todo-scripts` 一致。字标文本与「框顶是否保留版本号」两处由 Hubery 拍板（选 `TODO-VUE` 而非 `CREATE-TODO-VUE`——后者 117 列，绝大多数终端会直接退化成纯文本；框顶去版本号，避免同屏重复）。字体裁成只含 8 个字形的子集，产物 107.3 → 97.8 kB。**CTV-45 的两条 E2E 守卫跟着版本号搬进 `banner.e2e.test.ts`，没有放弃**。详见 [architecture.md](./architecture.md) 的 `src/banner.ts` 一节 | 小 |
+
+⚠️ **CTV-49 是 2026-09-21 补登记的**，开工时没走维护规则第 2 条（先标 🚧）。根因是那次在 git worktree 里开工，而 `CLAUDE.md` 与 `.docs/` 当时都被 `.gitignore` 排除、worktree 里读不到，整个任务做完才发现违反了「非交互三件套不可省 `--no-immediate`」。**已把 `CLAUDE.md` 与整个 `.docs/` 都纳入版本管理**，以后 worktree 与新克隆都读得到禁令和索引。

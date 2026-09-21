@@ -18,7 +18,7 @@
 
 `pnpm-workspace.yaml` 里另有三条设置（`minimumReleaseAgeExcludePrune` / `trustPolicy` / `shellEmulator`）是 `@antfu/eslint-config` 带的 `eslint-plugin-pnpm` 强制要求的，缺任何一条 `pnpm lint` 都会报 `pnpm/yaml-enforce-settings`；这些键还受 `yaml/sort-keys` 约束，顺序不能随手调，改完跑 `pnpm lint:fix` 让它排。`trustPolicy: no-downgrade` 会让每次 install 多做一轮 lockfile 供应链校验（CI 实测约 6.6 秒 / 559 条；本地冷缓存时会到 18 秒左右）。
 
-**TypeScript 被刻意压在 6.x**。最新是 7.0.2（Go 重写版），但 `@antfu/eslint-config` 依赖的 `typescript-eslint@8` peer 范围是 `>=4.8.4 <6.1.0`，装 7 会直接 unmet peer。6.0.3 是当前工具链能接受的最高版本，等 typescript-eslint 支持 7 之后再升（ROADMAP CTV-28）。
+**TypeScript 被刻意压在 6.x**。最新是 7.0.2（Go 重写版），但 `@antfu/eslint-config` 依赖的 `typescript-eslint@8` peer 范围是 `>=4.8.4 <6.1.0`，装 7 会直接 unmet peer。6.0.3 是当前工具链能接受的最高版本，等 typescript-eslint 支持 7 之后再升（CTV-28，已放弃，见 [backlog.md](./backlog.md)）。
 
 **`engines` 声明的是发布产物对使用者的要求**（`^20.19.0 || >=22.12.0`），与开发所需的 Node 版本是两回事。`dist/index.js` 把所有依赖都打包了进去（产物里只剩 `node:` 内置模块的引用），其中门槛最高的是 `@clack/prompts` 的 Node ≥ 20.12，所以 Node 20 用户仍然装得上、跑得起来。但**本地开发需要更高的 Node**——devDependencies 里 `tsdown` 要 `^22.18.0 || >=24.11.0`、`lint-staged` 要 `>=22.22.1`。不要因为升了 devDependencies 就去抬 `engines`，那会平白挡掉一批用户。
 
@@ -28,7 +28,7 @@ npm 打包时**无条件剔除 `.gitignore` 和 `.npmrc`**，与 `files` 字段�
 
 **任何模板只要带 `.gitignore` 或 `.npmrc`，就必须在仓库里存成 `_` 前缀并加进 `RENAME_FILES`**，否则用户拿到的项目里根本没有这个文件。这类问题在本地开发时完全看不出来（本地是直接读仓库目录），只有发布后才暴露——验证方式是 `npm pack --dry-run` 看文件清单，不能靠读代码判断。
 
-`template-vitesse-base` / `template-vitesse-lite` 现在就踩着这个坑（`.npmrc` 发不出去），见 ROADMAP CTV-12。
+**现在仓库里没有任何模板踩着这个坑**：七个内置模板各带一份 `_gitignore`，无一带 `.npmrc`，2026-09-21 从 registry 拉下来的 v1.11.0 真实 tarball 实测 7 个 `_gitignore`、0 个裸 `.gitignore`。曾经踩着的是 `template-vitesse-base` / `template-vitesse-lite`（`.npmrc` 发不出去），两个目录已随 CTV-30 删除、转交项也已随 CTV-47 下架。
 
 
 ## 本地门禁与依赖升级
