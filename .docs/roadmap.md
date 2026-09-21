@@ -55,6 +55,12 @@ Hubery 2026-09-21 指派，起因是 `@huberyyang/todo-scripts` 做过同类调�
 ⚠️ **CTV-55 的代价，接受前先看清**：绕过 `dev` 直推 `main` 的 hotfix 将没有 CI。`main` 没有分支
 保护，这条靠约定而非机制兜着。发版那棵树仍有 `release.yml` 的 tag 门禁接住，不会裸奔。
 
+### 仓库 · 归属迁移
+
+| 状态 | ID | 条目 | 说明 | 成本 |
+|:--:|:--|:--|:--|:--:|
+| ✅ | CTV-56 | **仓库迁到组织后的元数据同步** | Hubery 把仓库迁到了组织 `HuberyYang-Space`，旧路径 `Hub-yang/create-todo-vue` 只剩重定向。同步 6 处：`package.json` 的 `homepage`/`repository`/`bugs`、README 两个徽章（含 shields 的 workflow status 路径）、`src/constants` 的 `REPO_URL`。**刻意不动的两类**：README 署名 `https://github.com/Hub-yang`（个人账号仍在），以及所有 `Hub-yang/my-vue-dev-template` 引用（那个仓库没迁，`gh api` 核实过）。顺带改掉 [backlog.md](./backlog.md) 里 CTV-23 那句已失效的「确认仓库没转移过」 | 小 |
+
 ### 界面 · 品牌观感
 
 | 状态 | ID | 条目 | 说明 | 成本 |

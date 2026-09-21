@@ -1,13 +1,12 @@
 name: CI
 
-# Runs the same checks as the release gate, but on every push and PR, so a
-# failure surfaces when it is introduced instead of when a release is attempted.
+# 跑的是和发版门禁一样的几条命令，但落在每次 push 与 PR 上，让问题在引入的那一刻
+# 暴露，而不是等到发版那天才炸。
 #
-# Watches `dev` only, not `main`. This repo's history has zero merge commits
-# (`git log --merges` is empty): `dev` is fast-forwarded onto `main` and back, so
-# every tree reaching `main` was already checked here under the very same SHA,
-# and watching both ran each commit twice. The one tree that lands on `main`
-# without passing through `dev` is bumpp's version commit, gated by release.yml.
+# 只盯 dev，不盯 main：本仓库历史零 merge commit（`git log --merges` 为空），dev 与
+# main 之间一律快进，所以到达 main 的每一棵树都已经在**同一个 SHA** 下被这里检查过，
+# 两个都盯等于每个提交白跑两轮。唯一不经 dev 直接落在 main 的是 bumpp 的版本号提交，
+# 由 release.yml 的 tag 门禁接住。
 on:
   push:
     branches:
@@ -17,27 +16,27 @@ on:
 permissions:
   contents: read
 
-# A second push to the same ref makes the previous run pointless.
+# 同一个 ref 上的第二次 push 会让前一轮失去意义。
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   gate:
-    # Skip the release commit. `pnpm release` pushes it to `main` alongside its
-    # tag, release.yml gates it there, and fast-forwarding `dev` afterwards would
-    # otherwise run the identical gate a second time on the same SHA. bumpp's
-    # message template is fixed (`chore: release v1.10.0` and the five versions
-    # before it); should it ever change, this degrades into one redundant run and
-    # can never skip an unchecked tree. `head_commit` is null on pull_request.
+    # 跳过发版提交：`pnpm release` 把它连同 tag 一起推到 main，release.yml 已经在那里
+    # 跑过门禁，事后快进 dev 会让同一个 SHA 再跑一遍。判据是 bumpp 固定的提交信息
+    # `chore: release v1.10.0`（及之前五个版本都是这个形状）；模板哪天变了只会退化成
+    # 多跑一轮，不可能放过没检查的树。pull_request 事件没有 head_commit，先短路掉它。
+    # 整个表达式必须用双引号包住——`'chore: release v'` 里的 `: ` 会让 YAML 把这行
+    # 当成嵌套映射，`pnpm lint` 直接报 parsing error。
     if: "github.event_name == 'pull_request' || !startsWith(github.event.head_commit.message, 'chore: release v')"
     runs-on: ubuntu-latest
     steps:
-      # No `ref` and no `fetch-depth: 0` here, unlike release.yml: this job
-      # checks the current head and needs no tag history.
+      # 和 release.yml 不同，这里不带 ref、不带 fetch-depth: 0：
+      # 检查的就是当前 head，不需要 tag 历史。
       - uses: actions/checkout@v7
 
-      # Must come before setup-node, otherwise `cache: pnpm` cannot find pnpm.
+      # 必须排在 setup-node 前面，否则 `cache: pnpm` 找不到 pnpm。
       - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v7
@@ -47,8 +46,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Kept in step with release.yml's gate. `lint`, not `lint:fix`.
-      # test:e2e spawns the real CLI into temp dirs; it never installs anything.
+      # 与 release.yml 的门禁保持一致。用 lint，不是 lint:fix。
+      # test:e2e 会把真实 CLI fork 到临时目录里跑，它从不安装任何依赖。
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test

@@ -140,6 +140,16 @@ pnpm release        # build:prod && bumpp --no-verify && npm publish —— 由 
   标题层级不许跳级。文档里的**代码块**刻意不做风格检查（`eslint.config.ts` 的 `ctv/docs-snippets`）——
   那些片段有原样引用的上游代码，被本仓库规则改写后就不再是被引用的那份了。
 - **不要复活 `.github/renovate.json5`**——它从未生效，且配置本身就是坏的。
+- **`release` 脚本里的 `bumpp --no-verify` 不要拿掉**：那个版本号提交会触发 `pre-commit`，把
+  `build:prod` 十几秒前刚跑完的 typecheck + lint:fix + test 原样重跑（实测 8.1s），而 diff 只有
+  一个版本号字段。**日常提交的 `pre-commit` 保持全量**——本地与 CI 之间是刻意的跨环境双保险。
+- **`ci.yml` 的 push 只盯 `dev`，不要把 `main` 加回去**，job 上跳过 `chore: release v*` 的 `if`
+  同理：历史零 merge commit，到达 `main` 的树都已在**同一个 SHA** 下检查过，加回去等于每个提交
+  白跑两轮（v1.10.0 那棵树实测跑了三轮）。发版那棵树由 `release.yml` 的 tag 门禁接住。
+  **`concurrency` 替代不了**——三种 `github.ref` 分不进同一组。
+- **仓库已迁到组织 `HuberyYang-Space`**，`package.json` 的 `homepage`/`repository`/`bugs`、README
+  徽章、`src/constants` 的 `REPO_URL` 都要指向它，**不要写回个人账号 `Hub-yang`**（旧路径只是
+  重定向）。但 `my-vue-dev-template` 仍在个人账号下，提到它的地方不要一起改。
 - **改 `tsdown.config.ts` 的 `outDir` 会让模板目录解析静默指向错误位置**，且无编译期报错。
 
 ## Conventions
