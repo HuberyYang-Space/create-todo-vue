@@ -22,6 +22,7 @@
 - **断言提示文案时全部硬编码，不从 `src/` import 常量派生**。期望值一旦和实际值同源，断言就退化成恒等式（CTV-30 已用变异实测证实过一次）。
 - **非交互三件套是 `-t <模板> --overwrite --no-immediate`。** `--no-immediate` 不可省：不给它 CLI 会停在「是否立即安装依赖」的确认框上；而 `-i` 会**真的联网跑 npm install**。mri 把 `--no-immediate` 解析成 `immediate: false`，于是走打印后续步骤的分支，既不提问也不联网。**任何 E2E 用例都不该触发真实安装。**
 - **子进程的环境是白名单，不是当前进程的环境**（`helpers/cli.ts`）。最要紧的是 `npm_config_user_agent`——它决定 `pkgFromUserAgent()` 认出哪个包管理器，进而影响收尾提示里的安装命令。跑测试的人用 pnpm 还是 npm，不该改变断言结果。
+- **给共享状态写断言时用绝对值，别用「操作前后相等」**——状态已被同文件其它用例弄脏时，后者会一路绿着骗人（第三方库就地改写模块级常量的那类污染，就是这么被瞒过去的）。
 - **永远不要在测试里调 `process.chdir()`**，vitest 的 worker 共享进程。cwd 是传给子进程的。
 - **`globalSetup` 会先构建 `dist/`**，所以用例不可能对着过期产物断言。这一步放在 globalSetup 而非 `pnpm build && vitest run` 的脚本串里，是因为前者同样覆盖「从 IDE 单跑一个文件」和 `--watch`。`E2E_SKIP_BUILD=1` 可跳过（要求 dist 已存在）。
 - **失败的 fixture 会被保留并打印路径**，`E2E_KEEP=1` 则一律保留。

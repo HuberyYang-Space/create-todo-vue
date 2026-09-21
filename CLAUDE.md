@@ -18,7 +18,8 @@
   新会话的贴用文案与**六项核实清单**见 [`.docs/kickoff.md`](.docs/kickoff.md)。
 - **每次提交** → 走 `/commit` skill，不要手写 `git add` + `git commit` 绕过去。
   绕过去会漏掉该 skill 的规则（如「除非明确要求，不加 `Co-Authored-By` trailer」），已踩过两次。
-- **每次发版** → 读 [`.docs/release.md`](.docs/release.md) 的六步清单。
+- **每次发版，以及改 `.github/workflows/` 之前** → 读 [`.docs/release.md`](.docs/release.md)：
+  六步清单，外加 `release.yml` 那五处载重设计（随手改一处就会在发版当天炸）。
   **`npm login` 与 `pnpm release` 由 Hubery 亲自执行，Claude 到那一步停手**——不要拆成
   `bumpp` + `npm publish`，也不要另找认证方式：`npm publish` 要 2FA 码（实测 `EOTP`），
   `bumpp` 交互式会在工具调用里挂住。
@@ -75,9 +76,6 @@ pnpm release        # build:prod && bumpp && npm publish —— 由 Hubery 执�
 - **改依赖、包管理器配置、`lint-staged` / `tsconfig` / `engines` 之前 →
   读 [`.docs/toolchain.md`](.docs/toolchain.md) → 不读的后果**：pnpm 11 的三条变更、TS 被压在 6.x
   的原因、`engines` 与 devDeps 的区别都有人踩过；`pre-commit` 漏掉 `--config` 会让提交挂死 7 分钟。
-- **改 `.github/workflows/` 之前 → 读 [`.docs/release.md`](.docs/release.md) → 不读的后果**：
-  `release.yml` 有五处载重设计（`env.TAG` / `ref: <tag>` / `fetch-depth: 0` / pnpm 先于
-  setup-node / tag↔version 校验），随手改任何一处都会在发版当天炸。
 - **想知道某条目当初为什么那么做 → 查 [`.docs/archive.md`](.docs/archive.md)（按 CTV-NN）或
   [`.docs/timeline.md`](.docs/timeline.md)（按日期）→ 不查的后果**：把论证过并放弃的方案重做一遍。
 - **有新想法但没被点头 → 写进 [`.docs/backlog.md`](.docs/backlog.md)，不要挪进待办**；
@@ -89,77 +87,59 @@ pnpm release        # build:prod && bumpp && npm publish —— 由 Hubery 执�
 
 - **`src/` 里不许出现 `process.exit()`**，只用 `process.exitCode`。它会跳过 `runCli()` 的
   `finally`，终端状态兜底就形同虚设；另有旧教训是它会截断没冲刷完的 stdout。
-- **失败也要把退出码原样带出来。** `install()` 返回包管理器的退出码，`main()` 直接 `return status`。
+- **失败也要把退出码原样带出来。** `install()` 返回包管理器的退出码，`main()` 直接 `return status`；
   压成 1 会让调用方分不清「装不上」和「参数写错」。**「把 `run()` 改成抛异常」是最省事的写法，
   也正是会弄丢它的写法。**
 - **开框用 `terminal.open()`、收尾用 `terminal.close()`，不要直接调 `prompts.intro/outro`**——
   绕过去就等于把状态机架空。`close()` 必须幂等；`cancel()` 要调 `markClosed()` 认领；
   `restoreCursor()` 只在开过框之后才写（无条件写会污染 `--version` 的输出）。
-- **新增提问点必须包在 `ask()` 里**，并传「这一步在问什么」和「非交互下该改用哪个参数」，
-  漏掉的那个会退回「画半截菜单然后静默死掉」。判据**不能用 `process.stdin.isTTY`**（管道也不是
-  TTY）；`'end'` 和 `'close'` 两个事件都要听。
-- **包名的解析必须排在破坏性操作（处理已存在目标）之前**，校验先于副作用；提问仍留在第 3 步。
-  E2E 有一条次序守卫钉着。
+- **新增提问点必须包在 `ask()` 里**（传「在问什么」与「非交互下改用哪个参数」），漏掉的会退回
+  「画半截菜单然后静默死掉」。判据**不能用 `process.stdin.isTTY`**（管道也不是 TTY）；
+  `'end'` 和 `'close'` 两个事件都要听。
+- **包名的解析必须排在破坏性操作（处理已存在目标）之前**，校验先于副作用；提问仍留在第 3 步，
+  E2E 有次序守卫钉着。
 - **`git init` 失败只 warn、不改退出码**，且必须排在 `scaffoldTemplate()` 之后、装依赖之前。
 - **`src/help.ts` 不许 import `constants`**（反向 import 会成循环依赖），数据靠参数传进来。
-- **`banner()` 必须排在 `--version` / `--help` / 参数校验之后、`terminal.open()` 之前。**
-  排到前面会污染 `$(create-todo-vue --version)` 的输出；排到后面字标会被打进 clack 的框里，
-  把 `┌` 和后续提示冲散。两头都有 E2E 钉着。
-- **改 `BRAND_NAME` 必须同时改 `BANNER_MIN_WIDTH` 和字体子集**（`src/assets/ansi-shadow-subset.ts`）。
-  阈值（72）是手量的，必须 ≥ 字标实际宽度（67），否则字标会在刚好触发渐变的那档宽度上折行；
-  子集只含 `TODO-VUE` 用到的 8 个字形，漏了的字母会**安静地渲染成空白**，不报错也不变窄。
-  单测拿未裁剪字体的点阵逐字比对整幅字标，两件事漏哪件都会红。
+- **`banner()` 必须排在 `--version` / `--help` / 参数校验之后、`terminal.open()` 之前**——
+  排前面污染 `--version` 输出，排后面字标被打进 clack 的框里，两头都有 E2E 钉着。
+- **改 `BRAND_NAME` 要同时改 `BANNER_MIN_WIDTH` 与字体子集**（`src/assets/ansi-shadow-subset.ts`）：
+  阈值低于字标实际宽度会折行，子集漏掉的字母会**安静渲染成空白**，不报错也不变窄。
 - **永远不要把模块级常量直接交给第三方库**，拿不准就传副本（`structuredClone`）。
   `mri` 会就地改写 options 对象且无上限增长。**`Object.freeze` 挡不住**（已实测，别再试）。
 
 ### 模板（`template-*`）
 
 - **`package.json` 的 `files` 必须写 `template-*/**`**，裸写法会让七个模板一个都发不出去，
-  本地开发完全看不出来。
+  而本地开发看不出来。
 - **任何模板只要带 `.gitignore` 或 `.npmrc`，必须存成 `_` 前缀并加进 `RENAME_FILES`**——
   npm 打包无条件剔除这两个文件名。
 - **`vite` 主版本必须 ≥ 8，TS 模板 SFC 必须带 `lang="ts"`**——少一样都要真装真建才暴露，
-  不要补 `pnpm-workspace.yaml` 放行 esbuild 来绕。证据见 `.docs/templates.md`。
+  不要补 `pnpm-workspace.yaml` 放行 esbuild 来绕。
 - **模板依赖版本对齐 create-vite 官方、不追 npm 最新**；例外与用法见
   [`.docs/toolchain.md`](.docs/toolchain.md)。加删内置模板要同步脚本里的 `MIRRORED_TEMPLATES`
   （`tests/sync-check.test.ts` 钉一致性）。
 - **`template-vue-dev` 不许加回 `trustPolicy`，也不许删掉 `eslint.config.ts` 里关闭
-  `pnpm/yaml-enforce-settings`**——lint 变绿代价是 install 退 1，两条断言配套钉着，
-  证据见 `.docs/templates.md`。
+  `pnpm/yaml-enforce-settings` 的那段**——lint 变绿的代价是 install 退 1，两条断言配套钉着。
 - **只镜像 vanilla / vue / lit 三个框架**，其余十几个（react / svelte / solid…）刻意不补，
   补齐会让模板与测试矩阵成倍增长。**不要「顺手补上」。**
 - **`custom-*` 只列官方 create-vite 列的转交目标**，自己加的自担上游腐烂风险：
   vitesse 是 CTV-30 自己加的，停更 7 个月才被发现（CTV-47 已删）。
 - **所有模板都要剥掉上游身份信息**（`author`/`homepage`/`repository`/`bugs`/`license`/
-  `packageManager`、`LICENSE`、lockfile）——机器读字段，别人 issue 会落错仓库，页面署名
-  不在此列。证据见 `.docs/templates.md`。
+  `packageManager`、`LICENSE`、lockfile）——机器读的字段，别人 issue 会落错仓库；页面署名不在此列。
 - **七个模板各带一份占位 `README.md`（内容恰好是 `# <模板名>`，不走改写），不许有孤儿
-  `template-*` 目录**（没登记进 `FRAMEWORKS` 的会被通配捎带发出去），两条都有反向断言钉着。
-
-### 测试
-
-- **永远不要在测试里调 `process.chdir()`**，vitest 的 worker 共享进程；cwd 是传给子进程的。
-- **断言提示文案时全部硬编码，不从 `src/` import 常量派生**（见四条验证标准第二条）。
-- **给共享状态写断言时用绝对值，别用「操作前后相等」**——状态已被同文件其它用例弄脏时后者会骗人。
-- **非交互三件套是 `-t <模板> --overwrite --no-immediate`，`--no-immediate` 不可省；
-  任何 E2E 用例都不该触发真实安装**（`-i` 会真的联网跑 npm install）。
-- **断言框线时看「最后一行非空输出」，别去数 `└` 的个数**；有收尾语的路径要**整行相等**。
-- **挑 stub 退出码时避开 1**，那个值和「取消」「参数有误」撞车。
+  `template-*` 目录**（没登记进 `FRAMEWORKS` 的会被通配发出去），两条都有断言钉着。
 
 ### 发布与工具链
 
 - **`pnpm-workspace.yaml` 里那三条 eslint-plugin-pnpm 强制的设置不能删**（缺一条 `pnpm lint` 退 1），
-  且受 `yaml/sort-keys` 约束，改完跑 `pnpm lint:fix` 让它排。**`.npmrc` 已删除不要加回来**
-  （pnpm 11 默认就开 `manage-package-manager-versions`）。
-- **不要因为升了 devDependencies 就去抬 `engines`**——证据见 [`.docs/toolchain.md`](.docs/toolchain.md)。
-- **`pre-commit` 里的 `--config` 是必需的，不能省成裸的 `npx lint-staged`**——省略会让提交挂死，
-  证据见 [`.docs/toolchain.md`](.docs/toolchain.md)。
-- **`.docs/` 进版本库之后就归 `pnpm lint` 管了。** 写表格时单元格里的 `|` 必须转义成 `\|`，
-  **哪怕它在行内代码里**——markdown 的表格切分先于行内代码解析，不转义会把一行切成更多列，
-  多出来的内容渲染时被静默丢弃。标题层级也不许跳级（`#` 下面直接写 `###` 会报错）。
-  文档里的**代码块**刻意不做风格检查（见 `eslint.config.ts` 的 `ctv/docs-snippets`）：
-  那些片段有节选也有原样引用的上游代码，让本仓库的规则去改写它们就不再是被引用的那份了。
-- **不要复活 `.github/renovate.json5`**——从未生效且配置本身是坏的，证据见 [`.docs/toolchain.md`](.docs/toolchain.md)。
+  且受 `yaml/sort-keys` 约束，改完跑 `pnpm lint:fix` 让它排。**`.npmrc` 已删除不要加回来。**
+- **不要因为升了 devDependencies 就去抬 `engines`**，它声明的是发布产物对使用者的要求。
+- **`pre-commit` 里的 `--config` 是必需的，不能省成裸的 `npx lint-staged`**——省略会让提交挂死。
+- **`.docs/` 进版本库之后就归 `pnpm lint` 管了。** 表格单元格里的 `|` 必须转义成 `\|`，**哪怕它在
+  行内代码里**（表格切分先于行内代码解析，不转义会把一行切成更多列、多出的内容被静默丢弃）；
+  标题层级不许跳级。文档里的**代码块**刻意不做风格检查（`eslint.config.ts` 的 `ctv/docs-snippets`）——
+  那些片段有原样引用的上游代码，被本仓库规则改写后就不再是被引用的那份了。
+- **不要复活 `.github/renovate.json5`**——它从未生效，且配置本身就是坏的。
 - **改 `tsdown.config.ts` 的 `outDir` 会让模板目录解析静默指向错误位置**，且无编译期报错。
 
 ## Conventions
