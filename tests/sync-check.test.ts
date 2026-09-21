@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { diffDeps } from '../scripts/sync-check.ts'
+import { diffDeps, flatten } from '../scripts/sync-check.ts'
 
 describe('diffDeps', () => {
   it('两边完全一致时没有差异', () => {
@@ -24,5 +24,29 @@ describe('diffDeps', () => {
   it('结果按名字升序，跟入参顺序无关', () => {
     const out = diffDeps({ zzz: '1', aaa: '1' }, { zzz: '2', aaa: '2' })
     expect(out.map(d => d.name)).toEqual(['aaa', 'zzz'])
+  })
+})
+
+describe('flatten', () => {
+  it('dependencies 与 devDependencies 都有时合并成一张表', () => {
+    expect(flatten({ dependencies: { vue: '^3.5.0' }, devDependencies: { vite: '^8.3.0' } }))
+      .toEqual({ vue: '^3.5.0', vite: '^8.3.0' })
+  })
+
+  it('只有 dependencies 时原样返回', () => {
+    expect(flatten({ dependencies: { vue: '^3.5.0' } })).toEqual({ vue: '^3.5.0' })
+  })
+
+  it('只有 devDependencies 时原样返回', () => {
+    expect(flatten({ devDependencies: { vite: '^8.3.0' } })).toEqual({ vite: '^8.3.0' })
+  })
+
+  it('两者都没有时返回空对象', () => {
+    expect(flatten({})).toEqual({})
+  })
+
+  it('同名依赖同时出现在两边时，devDependencies 的值覆盖 dependencies', () => {
+    expect(flatten({ dependencies: { vite: '^7.0.0' }, devDependencies: { vite: '^8.3.0' } }))
+      .toEqual({ vite: '^8.3.0' })
   })
 })

@@ -26,7 +26,11 @@ export function diffDeps(ours: DepMap, theirs: DepMap): DepDiff[] {
     .map(name => ({ name, ours: ours[name], theirs: theirs[name] }))
 }
 
-function flatten(pkg: { dependencies?: DepMap, devDependencies?: DepMap }): DepMap {
+/**
+ * 合并 dependencies 与 devDependencies 成一张扁平表。
+ * 同名依赖同时出现在两边时，devDependencies 的值覆盖 dependencies。
+ */
+export function flatten(pkg: { dependencies?: DepMap, devDependencies?: DepMap }): DepMap {
   return { ...pkg.dependencies, ...pkg.devDependencies }
 }
 
