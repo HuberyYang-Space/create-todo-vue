@@ -17,7 +17,7 @@
 | | |
 |---|---|
 | **已发布** | **v1.10.0**（2026-09-10 16:27 上线 npm 且为 `latest`，tag 与 GitHub Release 均已生成，Release workflow run 34455162869 与 main 上的 CI run 34455157644 均 success；tag `v1.10.0` 解引用后指向 `cc4f8b0`，`git branch --contains` 确认**只在 `main` 上——连续第五次在 main 上发版**。**真实 tarball 实测**：119 文件、7 模板、7 个 `_gitignore`、0 个裸 `.gitignore`，`package.json` 版本 1.10.0；**线上产物真跑**：intro 打出 `┌  create-todo-vue v1.10.0`，强制开色时 dim 只包住 `v1.10.0`（`ESC[2m…ESC[22m`），`--version` 仍是干净的 7 字节，`npx …@1.10.0 --version` 端到端返回 1.10.0，`vanilla-ts` 用 pnpm 装依赖退 0。发版后已把 `dev` 快进到 `main`，四个引用同步在 `cc4f8b0`）|
-| **进行中** | CTV-54 / CTV-55 — 同环境重复检测去冗余 |
+| **进行中** | 无 |
 | **下一批** | CTV-46/47/48/49 已完成，**待发版**（CTV-47 是 breaking，版本号由 Hubery 定）。线上仍是 v1.10.0 |
 
 > ✅ 线上已止血：v1.1.0 起 vitesse 模板不再发布（`npm pack` 当时实测 82 个文件中 vitesse 相关 0 个；CTV-30 后仓库里连副本都没有了，v1.8.0 的 tarball 是 119 文件）。
@@ -49,8 +49,8 @@ Hubery 2026-09-21 指派，起因是 `@huberyyang/todo-scripts` 做过同类调�
 
 | 状态 | ID | 条目 | 说明 | 成本 |
 |:--:|:--|:--|:--|:--:|
-| 🚧 | CTV-54 | **`bumpp --no-verify`** | `build:prod` 跑完全量门禁十几秒后，`bumpp` 的版本号提交触发 `pre-commit`，把 typecheck + lint:fix + test 原样再跑一遍（本机实测 ≈ **8.1s**），而 diff 只有一个版本号字段。`lint-staged` 的 glob 是 `'*'`，`package.json` 必然匹配，躲不掉。与 todo-scripts HB-37 同款 | 小 |
-| 🚧 | CTV-55 | **CI 同一 SHA 不再跑 2~3 轮** | 实测 `cc4f8b0`（v1.10.0）在 Actions 上跑了**三轮**完整门禁，日常提交稳定两轮。三处改动：`ci.yml` 的 push 从 `[main, dev]` 收成 `[dev]`（历史**零 merge commit**，到达 `main` 的树都已在同一 SHA 下检查过）、加 `concurrency` + `cancel-in-progress`、job 上加 `if` 跳过 `bumpp` 的发版提交。**`concurrency` 单独救不了**：三种 `github.ref` 互不相同，分不进同一组 | 小 |
+| ✅ | CTV-54 | **`bumpp --no-verify`** | `build:prod` 跑完全量门禁十几秒后，`bumpp` 的版本号提交触发 `pre-commit`，把 typecheck + lint:fix + test 原样再跑一遍（本机实测 ≈ **8.1s**），而 diff 只有一个版本号字段。`lint-staged` 的 glob 是 `'*'`，`package.json` 必然匹配，躲不掉。与 todo-scripts HB-37 同款 | 小 |
+| ✅ | CTV-55 | **CI 同一 SHA 不再跑 2~3 轮** | 实测 `cc4f8b0`（v1.10.0）在 Actions 上跑了**三轮**完整门禁，日常提交稳定两轮。三处改动：`ci.yml` 的 push 从 `[main, dev]` 收成 `[dev]`（历史**零 merge commit**，到达 `main` 的树都已在同一 SHA 下检查过）、加 `concurrency` + `cancel-in-progress`、job 上加 `if` 跳过 `bumpp` 的发版提交。**`concurrency` 单独救不了**：三种 `github.ref` 互不相同，分不进同一组 | 小 |
 
 ⚠️ **CTV-55 的代价，接受前先看清**：绕过 `dev` 直推 `main` 的 hotfix 将没有 CI。`main` 没有分支
 保护，这条靠约定而非机制兜着。发版那棵树仍有 `release.yml` 的 tag 门禁接住，不会裸奔。
