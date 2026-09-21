@@ -36,7 +36,7 @@ describe('头部字标', () => {
   it('不支持超链接的终端上补一行明文仓库地址', async () => {
     const result = await runCli(fixture, ['-t', 'vanilla', '--overwrite', '--no-immediate'])
 
-    expect(result.stdout).toContain('(https://github.com/Hub-yang/create-todo-vue)')
+    expect(result.stdout).toContain('(https://github.com/HuberyYang-Space/create-todo-vue)')
   })
 
   /**

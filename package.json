@@ -6,13 +6,13 @@
   "description": "💡 create vue projects with awesome templates",
   "author": "HuberyYang",
   "license": "MIT",
-  "homepage": "https://github.com/Hub-yang/create-todo-vue",
+  "homepage": "https://github.com/HuberyYang-Space/create-todo-vue",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Hub-yang/create-todo-vue.git"
+    "url": "git+https://github.com/HuberyYang-Space/create-todo-vue.git"
   },
   "bugs": {
-    "url": "https://github.com/Hub-yang/create-todo-vue/issues"
+    "url": "https://github.com/HuberyYang-Space/create-todo-vue/issues"
   },
   "keywords": [
     "scripts",
