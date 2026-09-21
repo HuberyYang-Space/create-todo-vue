@@ -1,0 +1,62 @@
+#!/usr/bin/env expect -f
+# 驱动 create-todo-vue 走一遍完整交互，供 asciinema 录制。
+# 不直接跑，由 record-demo.sh 调起（它负责 build 与 asciinema/agg 的串联）。
+#
+# 两件不显而易见的事：
+#
+# 1. 列宽写死 120。resolveBannerMode() 在列宽 < 72（BANNER_MIN_WIDTH）时退化成
+#    plain，渐变字标根本不出现。`script` 造的 pty 列宽为 0，就是这么踩到的——
+#    改这个数之前先确认它还大于 72。
+# 2. 画面里打的是真实用法 `npm create @huberyyang/todo-vue`，但 npm 被 rcfile 里
+#    的 shell 函数接管，转发到本仓库**刚构建出的** bin/index.js。registry 上的
+#    版本未必带着当前这版字标，真去 npm 拉会录到一个看不见它的旧版本。
+
+set repo   [lindex $argv 0]
+set rcfile [lindex $argv 1]
+
+set stty_init "cols 120 rows 30"
+set timeout 30
+
+# 逐字发送，让画面看起来是人在敲，而不是整行瞬间出现
+proc slow_type {s} {
+    foreach ch [split $s ""] {
+        send -- $ch
+        sleep 0.055
+    }
+}
+
+spawn -noecho env REPO=$repo BASH_SILENCE_DEPRECATION_WARNING=1 bash --rcfile $rcfile -i
+
+# rcfile 收尾会 clear，等提示符出现再开始
+expect "$ "
+sleep 0.8
+
+slow_type "npm create @huberyyang/todo-vue"
+sleep 0.5
+send "\r"
+
+expect "项目名称"
+sleep 0.9
+slow_type "my-todo-app"
+sleep 0.6
+send "\r"
+
+# 框架列表：Vanilla / Vue / Lit，下移一格选 Vue
+expect "选择模板"
+sleep 1.2
+send "\033\[B"
+sleep 0.8
+send "\r"
+
+# 预设：第一项就是 TypeScript(vue-ts)，停一拍让人看清列表再回车
+expect "选择预设"
+sleep 1.6
+send "\r"
+
+# 是否装依赖：选「否」，装依赖会让录制拖很久且输出全是噪音
+expect "安装依赖"
+sleep 1.0
+send "n"
+sleep 0.6
+
+expect eof

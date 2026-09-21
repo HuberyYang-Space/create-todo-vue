@@ -55,6 +55,12 @@ Hubery 2026-09-21 指派，起因是 `@huberyyang/todo-scripts` 做过同类调�
 ⚠️ **CTV-55 的代价，接受前先看清**：绕过 `dev` 直推 `main` 的 hotfix 将没有 CI。`main` 没有分支
 保护，这条靠约定而非机制兜着。发版那棵树仍有 `release.yml` 的 tag 门禁接住，不会裸奔。
 
+### 文档 · README 终端演示
+
+| 状态 | ID | 条目 | 说明 | 成本 |
+|:--:|:--|:--|:--|:--:|
+| ✅ | CTV-57 | **README 加终端演示 GIF** | Hubery 提的。`.github/assets/` 下三件套：`demo.exp`（expect 驱动交互）、`demo-rc.sh`（准备步骤，放在 clear 之前所以不入画）、`record-demo.sh`（串 build → asciinema → agg）。**先试 vhs，放弃了**：它靠无头 Chromium 渲染 xterm.js 截帧，在这台 macOS 上从未走到 ffmpeg，官方自带模板同样失败。改用 asciinema + agg，不依赖浏览器。产物 117K / 9.2s，`.github/` 不在 `files` 里，不进 npm 包 | 中 |
+
 ### 仓库 · 归属迁移
 
 | 状态 | ID | 条目 | 说明 | 成本 |

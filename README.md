@@ -7,6 +7,10 @@
   <a href="https://opensource.org/license/MIT"><img src="https://img.shields.io/npm/l/@huberyyang/create-todo-vue?style=flat-square" alt="license"/></a>
 </div>
 
+<div align="center">
+  <img src="https://raw.githubusercontent.com/HuberyYang-Space/create-todo-vue/main/.github/assets/demo.gif" alt="终端演示：交互式创建一个 vue-ts 项目" width="860">
+</div>
+
 ### 💡 说明 (Features)
 
 使用自定义模板快速创建最新的vue项目
