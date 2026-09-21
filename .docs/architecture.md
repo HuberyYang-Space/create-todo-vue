@@ -63,6 +63,13 @@
 
 **版本号从框顶搬到了字标下面。** CTV-45 要的是「界面上能看出跑的是哪一版」，字标尾行已经满足，框顶再写一遍就是同屏重复，所以 `terminal.open()` 的标题收窄成纯 `create-todo-vue`，`plan.ts` 的 `buildIntroTitle()` 随之删除（零消费方）。**CTV-45 的两条 E2E 守卫跟着搬进 `banner.e2e.test.ts`，没有被放弃**——哪天字标也被拿掉，那两条必须再找新家。
 
+**README 的演示 GIF 录的就是这几行字。** `.github/assets/demo.gif` 是一段真实终端录像，
+改了 `BRAND_NAME`、渐变配色或尾行格式之后它就过期了——跑 `bash .github/assets/record-demo.sh`
+重录一遍即可，脚本会自己先 `pnpm build`（录的是本地构建产物）。录制链路是 asciinema + agg，
+**不是 vhs**（vhs 靠无头 Chromium 截帧，在这台机器上从未走到 ffmpeg，经过见
+[timeline.md](./timeline.md) 的 CTV-57）。最容易忘的前提是**列宽**：`demo.exp` 里写死 120 列，
+低于 `BANNER_MIN_WIDTH` 就会走 plain 分支，录出来的字标是纯文本、一点渐变都没有。
+
 **渐变着色没有自动化守卫。** gradient-string 底下是 chalk，chalk 在非 TTY 下 level 为 0，`gradient(...).multiline(x)` 原样返回 x——测试进程里永远量不出颜色，拿 `FORCE_COLOR` 硬撑等于在测 chalk。配色只能在真实终端里看。
 
 **`src/interactive.ts`（CTV-31）** 是 `src/` 里唯一碰 `process.stdin` 事件的地方。它导出 `ask(prompt, step, hint, stdin?)` 与 `NonInteractiveError`，职责只有一件：**不让一个永远等不到输入的 prompt 无声无息地拖死进程**。
