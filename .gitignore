@@ -91,7 +91,8 @@ __snapshots__/
 *.tgz
 
 # --- 个人维护，不进版本库 (Personal, not version-controlled) ---
-CLAUDE.md
+# CLAUDE.md 已纳入版本管理：它只放现役禁令与隐式契约，不跟着分支走的话
+# worktree / 新克隆里读不到，约定就会被下一个会话当成不存在。
 spec.md
 .docs/
 .superpowers/
