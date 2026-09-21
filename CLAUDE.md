@@ -1,13 +1,11 @@
 # CLAUDE.md
 
-**本文件纳入版本管理**，这样它会跟着每个分支、每个 worktree、每次克隆走。
-2026-09-21 改的：在此之前它和 `.docs/` 一起被 `.gitignore` 排除，结果 worktree 里根本读不到，
+**本文件与整个 `.docs/` 都纳入版本管理**，跟着每个分支、每个 worktree、每次克隆走。
+2026-09-21 改的：在此之前两者都被 `.gitignore` 排除，结果 worktree 里根本读不到，
 一次 banner 改动整个做完才发现违反了「非交互三件套不可省 `--no-immediate`」——
-**约定读不到，等于不存在**。
+**约定读不到，等于不存在**。它们不在 `package.json` 的 `files` 里，不会发进 npm 包。
 
-`spec.md` 与整个 `.docs/` **仍然不纳入版本管理**，只存在于主工作副本里。这是刻意的，
-不是疏漏，**不要 `git add -f`**。⚠️ 于是本文件里所有指向 `.docs/` 的链接在
-worktree 和新克隆里都是断的——需要那些内容时回主工作副本读。
+只有 `spec.md` 仍然不进版本库。
 
 `@huberyyang/create-todo-vue` 是仿 create-vite 的脚手架 CLI，**bin-only，没有 library API**。
 本文件只放**现役禁令、隐式契约、踩过的坑及其理由**；叙述性内容（架构、排期、实测证据、设计记录）
@@ -104,6 +102,13 @@ pnpm release        # build:prod && bumpp && npm publish —— 由 Hubery 执�
   E2E 有一条次序守卫钉着。
 - **`git init` 失败只 warn、不改退出码**，且必须排在 `scaffoldTemplate()` 之后、装依赖之前。
 - **`src/help.ts` 不许 import `constants`**（反向 import 会成循环依赖），数据靠参数传进来。
+- **`banner()` 必须排在 `--version` / `--help` / 参数校验之后、`terminal.open()` 之前。**
+  排到前面会污染 `$(create-todo-vue --version)` 的输出；排到后面字标会被打进 clack 的框里，
+  把 `┌` 和后续提示冲散。两头都有 E2E 钉着。
+- **改 `BRAND_NAME` 必须同时改 `BANNER_MIN_WIDTH` 和字体子集**（`src/assets/ansi-shadow-subset.ts`）。
+  阈值（72）是手量的，必须 ≥ 字标实际宽度（67），否则字标会在刚好触发渐变的那档宽度上折行；
+  子集只含 `TODO-VUE` 用到的 8 个字形，漏了的字母会**安静地渲染成空白**，不报错也不变窄。
+  单测拿未裁剪字体的点阵逐字比对整幅字标，两件事漏哪件都会红。
 - **永远不要把模块级常量直接交给第三方库**，拿不准就传副本（`structuredClone`）。
   `mri` 会就地改写 options 对象且无上限增长。**`Object.freeze` 挡不住**（已实测，别再试）。
 
@@ -149,6 +154,11 @@ pnpm release        # build:prod && bumpp && npm publish —— 由 Hubery 执�
 - **不要因为升了 devDependencies 就去抬 `engines`**——证据见 [`.docs/toolchain.md`](.docs/toolchain.md)。
 - **`pre-commit` 里的 `--config` 是必需的，不能省成裸的 `npx lint-staged`**——省略会让提交挂死，
   证据见 [`.docs/toolchain.md`](.docs/toolchain.md)。
+- **`.docs/` 进版本库之后就归 `pnpm lint` 管了。** 写表格时单元格里的 `|` 必须转义成 `\|`，
+  **哪怕它在行内代码里**——markdown 的表格切分先于行内代码解析，不转义会把一行切成更多列，
+  多出来的内容渲染时被静默丢弃。标题层级也不许跳级（`#` 下面直接写 `###` 会报错）。
+  文档里的**代码块**刻意不做风格检查（见 `eslint.config.ts` 的 `ctv/docs-snippets`）：
+  那些片段有节选也有原样引用的上游代码，让本仓库的规则去改写它们就不再是被引用的那份了。
 - **不要复活 `.github/renovate.json5`**——从未生效且配置本身是坏的，证据见 [`.docs/toolchain.md`](.docs/toolchain.md)。
 - **改 `tsdown.config.ts` 的 `outDir` 会让模板目录解析静默指向错误位置**，且无编译期报错。
 
