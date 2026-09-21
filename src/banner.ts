@@ -1,9 +1,9 @@
 import process from 'node:process'
 import figlet from 'figlet'
-import bannerFont from 'figlet/importable-fonts/ANSI Shadow.js'
 import gradient from 'gradient-string'
 import colors from 'picocolors'
 import terminalLink from 'terminal-link'
+import bannerFont from './assets/ansi-shadow-subset'
 import { PKG_NAME, REPO_URL } from './constants'
 import { getPkgMeta } from './utils'
 
