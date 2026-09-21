@@ -209,6 +209,42 @@ describe('模板注册表', () => {
   })
 
   /**
+   * CTV-46：typescript 跨大版本对齐官方（5.9 → 6.0）。这三个模板不装 eslint，
+   * 所以不受本仓库「TS 压在 6.x 是因为 typescript-eslint peer 卡 <6.1.0」那条约束——
+   * 那条只管本仓库和 template-vue-dev。
+   */
+  it('tS 模板的 typescript 主版本不低于 6（对齐官方 create-vite）', () => {
+    for (const name of ['vanilla-ts', 'lit-ts', 'vue-ts']) {
+      const pkg = JSON.parse(fs.readFileSync(
+        path.join(repoRoot, `template-${name}`, 'package.json'),
+        'utf-8',
+      ))
+      const range: string | undefined = pkg.devDependencies?.typescript
+      expect(range, `template-${name} 没有声明 typescript`).toBeTruthy()
+      const major = Number.parseInt(range!.replace(/^\D*/, ''), 10)
+      expect(major, `template-${name} 声明的是 typescript ${range}，官方已在 ~6.0.2`)
+        .toBeGreaterThanOrEqual(6)
+    }
+  })
+
+  /**
+   * CTV-46：@types/node 的主版本要跟 engines（^20.19.0 || >=22.12.0）对齐。
+   * npm 上最新是 26.x，官方刻意停在 24——追最新等于给 Node 20 用户发错类型。
+   * 这条断言的方向是「不得过高」，专门挡住「顺手升到最新」。
+   */
+  it('@types/node 主版本不高于 24（要跟 engines 声明的 Node 版本对齐）', () => {
+    const pkg = JSON.parse(fs.readFileSync(
+      path.join(repoRoot, 'template-vue-ts', 'package.json'),
+      'utf-8',
+    ))
+    const range: string | undefined = pkg.devDependencies?.['@types/node']
+    expect(range, 'template-vue-ts 没有声明 @types/node').toBeTruthy()
+    const major = Number.parseInt(range!.replace(/^\D*/, ''), 10)
+    expect(major, `template-vue-ts 声明的是 @types/node ${range}，engines 只支持到 Node 22`)
+      .toBeLessThanOrEqual(24)
+  })
+
+  /**
    * CTV-43：`<script setup>` 不带 `lang="ts"` 时 vue-tsc 认为这个 SFC 没有类型信息，
    * 于是 import 它的 `main.ts` 报 `TS7016 implicitly has an 'any' type`，
    * `vue-tsc -b && vite build` 直接失败。**与包管理器无关**，npm 用户一样构建不了。
