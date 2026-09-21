@@ -47,6 +47,7 @@
     "typecheck": "tsc",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
+    "sync:check": "node ./scripts/sync-check.ts",
     "taze": "npx taze major -r",
     "prepare": "husky",
     "commitlint": "commitlint --edit"
