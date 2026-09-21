@@ -55,7 +55,7 @@ pnpm build:prod     # typecheck && lint:fix && test && build && test:e2e（发�
 pnpm test           # vitest run —— 单测，已排除 tests/e2e/**
 pnpm test:e2e       # 真 fork CLI 到临时目录跑
 pnpm preview        # 构建后在本仓库里真跑一次 CLI
-pnpm release        # build:prod && bumpp && npm publish —— 由 Hubery 执行
+pnpm release        # build:prod && bumpp --no-verify && npm publish —— 由 Hubery 执行
 # 其余：dev / build / typecheck / lint / lint:fix / taze，以及 test:watch 等 watch 变体
 ```
 

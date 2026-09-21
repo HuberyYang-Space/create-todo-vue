@@ -8,7 +8,13 @@
 
 ## 发版流程
 
-`pnpm release` = `build:prod`（typecheck + lint:fix + test + build + test:e2e）→ `bumpp` → `npm publish`。
+`pnpm release` = `build:prod`（typecheck + lint:fix + test + build + test:e2e）→ `bumpp --no-verify` → `npm publish`。
+
+`--no-verify` 是 CTV-54 加的，**不要拿掉**：`bumpp` 的版本号提交会触发 husky 的 `pre-commit`，
+把 `build:prod` 十几秒前刚跑完的 typecheck + lint:fix + test 原样再跑一遍（本机实测 2.03 + 4.88 + 1.15
+≈ **8.1s**），而那个 diff 只有一个版本号字段，不可能由绿转红。`lint-staged` 的 glob 是 `'*'`，
+`package.json` 必然匹配，所以躲不掉。**日常提交的 `pre-commit` 保持全量不变**——那是本地与 CI 之间
+刻意的跨环境双保险，不在去重范围内。
 
 `bumpp` 默认开启 `--commit --tag --push`，所以它会自动把发版提交和 `v*` tag 推到**当前分支**，那个 tag 又会触发 `release.yml`。**注意日常开发在 `dev` 分支、默认分支是 `main`**——在 dev 上发版会让 main 落后，发版前要先想清楚是合回 main 再发还是接受落后。
 
@@ -40,7 +46,24 @@
 
 两个 workflow，门禁命令完全相同（`typecheck` / `lint` / `test` / `build` / `test:e2e`），刻意各写一遍而不抽成 `workflow_call`——五行的重复不值得引入一层间接：
 
-- **`ci.yml`**：push 到 `main` / `dev` 以及所有 PR 触发。检查当前 head，所以不带 `ref`、不带 `fetch-depth: 0`。
+⚠️ **门禁在两个 workflow 里各写一遍是刻意的，但同一棵树不该被跑两遍。** 2026-09-21 实测过代价：
+`cc4f8b0`（v1.10.0）在 Actions 上跑了**三轮**完整门禁——CI on `main`、Release on tag、事后快进 `dev`
+再一轮，命令一字不差；日常提交也稳定跑两轮（`4fa4519` / `b719f22` / `b11996e` 三组 run 的 SHA 逐一相同）。
+CTV-55 后降到日常一轮、发版一轮。**`concurrency` 救不了这个**：`refs/heads/main`、`refs/heads/dev`
+和 tag 的 `github.ref` 互不相同，分不进同一个组。
+
+- **`ci.yml`**：push 到 `dev` 以及所有 PR 触发。检查当前 head，所以不带 `ref`、不带 `fetch-depth: 0`。
+  - **只盯 `dev`、不盯 `main`**（CTV-55）：本仓库历史**零 merge commit**（`git log --merges` 为空），
+    `dev` 与 `main` 之间一律快进，所以到达 `main` 的每一棵树都已经在**同一个 SHA** 下被这里检查过，
+    两个都盯等于每个提交白跑两轮。唯一不经 `dev` 直接落在 `main` 的是 `bumpp` 的版本号提交，
+    由 `release.yml` 的 tag 门禁接住。**代价**：绕过 `dev` 直推 `main` 的 hotfix 没有 CI，
+    `main` 没有分支保护，这条靠约定兜着。
+  - **`concurrency` 按 ref 分组 + `cancel-in-progress`**：同一分支连推两次时第一轮不再跑到底。
+  - **job 上的 `if` 跳过发版提交**（CTV-55）：`pnpm release` 把它连同 tag 一起推到 `main`，
+    `release.yml` 已经在那里跑过门禁，事后快进 `dev` 会让同一个 SHA 再跑一遍。判据是 `bumpp`
+    固定的提交信息 `chore: release vX.Y.Z`；模板哪天变了只会退化成多跑一轮，**不可能放过没检查的树**。
+    `pull_request` 事件没有 `head_commit`，所以表达式先短路掉它。整个表达式**必须用双引号包起来**——
+    `'chore: release v'` 里的 `: ` 会让 YAML 把那行当成嵌套映射，`pnpm lint` 会直接报 parsing error。
 - **`release.yml`**：`v*` tag 推送触发，另有 `workflow_dispatch`（带 `tag` 输入）用于给漏掉 Release 的旧 tag 补发。几处载重设计，改动前先理解：
   - 工作流级的 `env.TAG` 是被发布 tag 的唯一真值来源，`run` 步骤里读 `$TAG` 而不是把表达式插值进 shell。
   - `checkout` 带 `ref: <tag>`，这样 dispatch 补发时门禁跑的是**当时真正发布的那棵树**，而不是默认分支当前的 head。

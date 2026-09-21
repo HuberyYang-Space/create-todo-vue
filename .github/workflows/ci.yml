@@ -1,19 +1,36 @@
 name: CI
 
-# Runs the same four checks as the release gate, but on every push and PR, so a
+# Runs the same checks as the release gate, but on every push and PR, so a
 # failure surfaces when it is introduced instead of when a release is attempted.
+#
+# Watches `dev` only, not `main`. This repo's history has zero merge commits
+# (`git log --merges` is empty): `dev` is fast-forwarded onto `main` and back, so
+# every tree reaching `main` was already checked here under the very same SHA,
+# and watching both ran each commit twice. The one tree that lands on `main`
+# without passing through `dev` is bumpp's version commit, gated by release.yml.
 on:
   push:
     branches:
-      - main
       - dev
   pull_request:
 
 permissions:
   contents: read
 
+# A second push to the same ref makes the previous run pointless.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   gate:
+    # Skip the release commit. `pnpm release` pushes it to `main` alongside its
+    # tag, release.yml gates it there, and fast-forwarding `dev` afterwards would
+    # otherwise run the identical gate a second time on the same SHA. bumpp's
+    # message template is fixed (`chore: release v1.10.0` and the five versions
+    # before it); should it ever change, this degrades into one redundant run and
+    # can never skip an unchecked tree. `head_commit` is null on pull_request.
+    if: "github.event_name == 'pull_request' || !startsWith(github.event.head_commit.message, 'chore: release v')"
     runs-on: ubuntu-latest
     steps:
       # No `ref` and no `fetch-depth: 0` here, unlike release.yml: this job
