@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { ARGV_OPTIONS, FRAMEWORKS, HELP_MESSAGE, TEMPLATES } from '../src/constants'
 import { collectKnownFlags } from '../src/plan'
+import { getLabel } from '../src/utils'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -39,6 +40,25 @@ describe('模板注册表', () => {
       'lit-ts',
       'lit',
     ])
+  })
+
+  /**
+   * CTV-58：vue-dev 是唯一带 `link` 的内置模板——其余带链接的都是 `custom-*` 转交项。
+   * 这条钉的是「标签把上游仓库亮出来」这个约定，期望值写死字面量而非从 FRAMEWORKS 派生：
+   * 改 `display`、改 `link`、或动 getLabel 的拼接，三处任意一处它都变红。
+   *
+   * URL 里的 `Hub-yang` 不是漏改——本仓库已迁到组织 `HuberyYang-Space`，
+   * 但 my-vue-dev-template 仍在个人账号下（见 CLAUDE.md 的现役禁令）。
+   */
+  it('vue-dev 的标签亮出上游仓库地址', () => {
+    const vueDev = FRAMEWORKS
+      .find(f => f.name === 'vue')
+      ?.variants
+      ?.find(v => v.name === 'vue-dev')
+
+    expect(vueDev, 'FRAMEWORKS 里找不到 vue-dev').toBeDefined()
+    expect(stripAnsi(getLabel(vueDev!)))
+      .toBe('Vue Dev Template https://github.com/Hub-yang/my-vue-dev-template')
   })
 
   it('每个内置模板都有真实存在的 template-* 目录', () => {

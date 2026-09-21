@@ -78,9 +78,14 @@ export const FRAMEWORKS: Framework[] = [
       // 比 vue-ts 重一档：预装 unocss / vueuse / vue-router 自动路由 / element-plus 图标 /
       // 自动导入 / eslint + husky + commitlint 一整套工具链。
       // 上游更新后本目录不会自动跟上，需要手动同步。
+      //
+      // CTV-58：唯一带 link 的内置模板，标签里亮出上游仓库供人自取。
+      // 刻意不跟 custom-* 那样加 `↗`——那个箭头在这份列表里专表「转交给上游脚手架」，
+      // 本项是内置模板，加了会误导。
       {
         name: 'vue-dev',
-        display: 'TypeScript + 工具链',
+        display: 'Vue Dev Template',
+        link: 'https://github.com/Hub-yang/my-vue-dev-template',
         color: cyan,
       },
       {
