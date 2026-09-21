@@ -95,8 +95,6 @@ npm create @huberyyang/todo-vue .foo --overwrite -t vue-ts --no-immediate --pack
 - `custom-create-vue` → `create-vue`（Official Vue Starter）
 - `custom-nuxt` → `nuxi init`（Nuxt）
 - `custom-vike-vue` → `create vike --vue`（Vike）
-- `custom-vitesse` → `degit antfu-collective/vitesse`（Vitesse）
-- `custom-vitesse-lite` → `degit antfu-collective/vitesse-lite`（Vitesse Lite）
 
 > 转交上游的模板由对方的脚手架直接生成，因此**不会**像内置模板那样把 `package.json` 的 `name`
 > 和 `index.html` 的 `<title>` 改写成包名，**也不会自动 `git init`**——需要的话生成后自己改一下。

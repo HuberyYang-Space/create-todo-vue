@@ -99,24 +99,6 @@ export const FRAMEWORKS: Framework[] = [
         color: greenBright,
         customCommand: 'npm create -- vike@latest --vue TARGET_DIR',
       },
-      // CTV-30：vitesse 曾经是仓库内置的两份副本，因为用了 pnpm 的 catalog: 协议
-      // 却没有对应的 pnpm-workspace.yaml 而 100% 装不上，v1.1.0 下架。
-      // 现在改为转交上游，仓库里不再留副本。
-      // 注意仓库地址：上游已从 antfu/ 迁到 antfu-collective/，旧地址靠 GitHub 重定向撑着。
-      {
-        name: 'custom-vitesse',
-        display: 'Vitesse ↗',
-        link: 'https://github.com/antfu-collective/vitesse',
-        color: greenBright,
-        customCommand: 'npm exec degit antfu-collective/vitesse TARGET_DIR',
-      },
-      {
-        name: 'custom-vitesse-lite',
-        display: 'Vitesse Lite ↗',
-        link: 'https://github.com/antfu-collective/vitesse-lite',
-        color: greenBright,
-        customCommand: 'npm exec degit antfu-collective/vitesse-lite TARGET_DIR',
-      },
     ],
   },
   {

@@ -110,8 +110,6 @@ describe('模块入口', () => {
       'custom-create-vue',
       'custom-nuxt',
       'custom-vike-vue',
-      'custom-vitesse',
-      'custom-vitesse-lite',
       'lit-ts',
       'lit',
     ])

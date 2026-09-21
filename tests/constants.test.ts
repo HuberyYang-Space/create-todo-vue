@@ -36,8 +36,6 @@ describe('模板注册表', () => {
       'custom-create-vue',
       'custom-nuxt',
       'custom-vike-vue',
-      'custom-vitesse',
-      'custom-vitesse-lite',
       'lit-ts',
       'lit',
     ])
@@ -348,8 +346,8 @@ describe('模板注册表', () => {
   })
 
   // help 里「可用模板」区块的所有词。**按空白切成词、而不是拿 HELP_MESSAGE 做子串匹配**：
-  // 模板名之间存在包含关系（`custom-vitesse` 是 `custom-vitesse-lite` 的子串，`vue` 是
-  // `vue-ts` 的子串），子串匹配会让「漏掉短的那个」全绿蒙混过去。
+  // 模板名之间存在包含关系（`vue` 是 `vue-ts` 的子串，`lit` 是 `lit-ts` 的子串），
+  // 子串匹配会让「漏掉短的那个」全绿蒙混过去。
   const listed = stripAnsi(HELP_MESSAGE)
     .split('可用模板:')[1]
     .split(/\s+/)
