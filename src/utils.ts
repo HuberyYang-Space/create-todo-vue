@@ -36,22 +36,40 @@ export function findPackageJson(startDir: string): string | undefined {
   }
 }
 
+export interface PkgMeta {
+  version: string
+  author: string
+}
+
+/**
+ * 读取自身 package.json 里对外露脸的那几项
+ * @param {string} startDir - 查找 package.json 的起点
+ * @returns 版本与作者；读不到时给 'unknown'（打个头部字标不该让 CLI 崩掉）
+ */
+export function getPkgMeta(startDir: string): PkgMeta {
+  const pkgPath = findPackageJson(startDir)
+  if (!pkgPath) {
+    return { version: 'unknown', author: 'unknown' }
+  }
+  try {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
+    return {
+      version: pkg.version ?? 'unknown',
+      author: pkg.author ?? 'unknown',
+    }
+  }
+  catch {
+    return { version: 'unknown', author: 'unknown' }
+  }
+}
+
 /**
  * 读取自身版本号
  * @param {string} startDir - 查找 package.json 的起点
  * @returns 版本号；读不到时返回 'unknown'（查版本不该让 CLI 崩掉）
  */
 export function getVersion(startDir: string): string {
-  const pkgPath = findPackageJson(startDir)
-  if (!pkgPath) {
-    return 'unknown'
-  }
-  try {
-    return JSON.parse(fs.readFileSync(pkgPath, 'utf-8')).version ?? 'unknown'
-  }
-  catch {
-    return 'unknown'
-  }
+  return getPkgMeta(startDir).version
 }
 
 /**

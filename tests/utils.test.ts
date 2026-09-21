@@ -14,6 +14,7 @@ import {
   getFullCustomCommand,
   getInstallCommand,
   getLabel,
+  getPkgMeta,
   getRunCommand,
   getVersion,
   isEmpty,
@@ -445,5 +446,52 @@ describe('getVersion', () => {
 
   it('找不到 package.json 时返回 unknown 而不是抛错', () => {
     expect(getVersion(path.parse(process.cwd()).root)).toBe('unknown')
+  })
+})
+
+/**
+ * 头部字标要拿作者名，`getVersion` 只给版本号，于是多了这一层。
+ *
+ * 三条回退路径都得钉住：**打个字标不该让 CLI 崩掉**，而崩法有三种——
+ * 找不到文件、文件是坏的 JSON、字段本身缺失。前两条 `getVersion` 早就有守卫，
+ * 第三条是这次新加 `author` 才有的（version 一向都在，author 不一定）。
+ */
+describe('getPkgMeta', () => {
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ctv-pkgmeta-'))
+
+  beforeAll(() => {
+    fs.mkdirSync(path.join(fixtureRoot, 'no-author'), { recursive: true })
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'no-author', 'package.json'),
+      JSON.stringify({ name: 'x', version: '2.0.0' }),
+    )
+    fs.mkdirSync(path.join(fixtureRoot, 'broken'), { recursive: true })
+    fs.writeFileSync(path.join(fixtureRoot, 'broken', 'package.json'), '{ 不是 JSON')
+  })
+
+  afterAll(() => {
+    fs.rmSync(fixtureRoot, { recursive: true, force: true })
+  })
+
+  it('读得到本仓库自己的版本号与作者', () => {
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+    const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf-8'))
+
+    expect(getPkgMeta(repoRoot)).toEqual({ version: pkg.version, author: pkg.author })
+  })
+
+  it('package.json 里没有 author 字段时给 unknown，版本号照常读出来', () => {
+    expect(getPkgMeta(path.join(fixtureRoot, 'no-author')))
+      .toEqual({ version: '2.0.0', author: 'unknown' })
+  })
+
+  it('package.json 是坏的 JSON 时两项都给 unknown，而不是抛错', () => {
+    expect(getPkgMeta(path.join(fixtureRoot, 'broken')))
+      .toEqual({ version: 'unknown', author: 'unknown' })
+  })
+
+  it('找不到 package.json 时两项都给 unknown', () => {
+    expect(getPkgMeta(path.parse(process.cwd()).root))
+      .toEqual({ version: 'unknown', author: 'unknown' })
   })
 })

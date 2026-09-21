@@ -63,10 +63,13 @@
     "bumpp": "^12.3.0",
     "cross-spawn": "^7.0.6",
     "eslint": "^10.9.1",
+    "figlet": "^1.11.4",
+    "gradient-string": "^3.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.4.1",
     "mri": "^1.2.0",
     "picocolors": "^1.1.1",
+    "terminal-link": "^5.0.0",
     "tsdown": "^0.22.14",
     "typescript": "^6.0.3",
     "vitest": "^5.0.0"

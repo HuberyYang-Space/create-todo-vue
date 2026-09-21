@@ -5,12 +5,12 @@ import { fileURLToPath } from 'node:url'
 import * as prompts from '@clack/prompts'
 import spawn from 'cross-spawn'
 import mri from 'mri'
+import { banner } from './banner'
 import { ARGV_OPTIONS, DEFAULT_TARGET_DIR, FRAMEWORKS, HELP_MESSAGE, RENAME_FILES, TEMPLATES } from './constants'
 import { ask, NonInteractiveError } from './interactive'
 import {
   buildCustomCommandArgs,
   buildDoneMessage,
-  buildIntroTitle,
   collectKnownFlags,
   findUnknownFlags,
   findVariantCommand,
@@ -139,7 +139,16 @@ export async function main(argvInput: string[] = process.argv.slice(2)): Promise
     return EXIT_USAGE
   }
 
-  terminal.open(buildIntroTitle(getVersion(ENTRY_DIR)))
+  // 字标排在这里有两条硬约束，挪动前先想清楚：
+  // 1. 必须在 `--version` / `--help` / 参数校验**之后**——那几条路径的 stdout 要干净到
+  //    能被 `$(create-todo-vue --version)` 直接吃掉，多一行字标就把调用方坑了；
+  // 2. 必须在 `terminal.open()` **之前**——排到开框之后，字标会被打进框里，
+  //    把 `┌` 和后续提示冲散。
+  banner(ENTRY_DIR)
+
+  // 标题不再带版本号：字标下面那行已经写着 `v1.x.x - HuberyYang`，
+  // 同屏重复两次没有意义
+  terminal.open('create-todo-vue')
 
   const pkgInfo = pkgFromUserAgent(process.env.npm_config_user_agent)
 

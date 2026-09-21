@@ -21,6 +21,10 @@ const { green, yellow, blue, cyan, redBright, greenBright } = colors
 
 export const DEFAULT_TARGET_DIR = 'vue-project'
 
+/** 本 CLI 在 npm 上的包名，头部字标的版本号链到它的包页 */
+export const PKG_NAME = '@huberyyang/create-todo-vue'
+export const REPO_URL = 'https://github.com/Hub-yang/create-todo-vue'
+
 /**
  * mri 的解析配置。
  *
