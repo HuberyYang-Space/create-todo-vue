@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { diffDeps, flatten } from '../scripts/sync-check.ts'
+import { applyExemptions, diffDeps, flatten, MIRRORED_TEMPLATES } from '../scripts/sync-check.ts'
+import { FRAMEWORKS } from '../src/constants'
+
+// vue-dev 有自己的上游（Hub-yang/my-vue-dev-template），不镜像 create-vite 官方，显式排除。
+const OWN_UPSTREAM = ['vue-dev']
 
 describe('diffDeps', () => {
   it('两边完全一致时没有差异', () => {
@@ -48,5 +52,35 @@ describe('flatten', () => {
   it('同名依赖同时出现在两边时，devDependencies 的值覆盖 dependencies', () => {
     expect(flatten({ dependencies: { vite: '^7.0.0' }, devDependencies: { vite: '^8.3.0' } }))
       .toEqual({ vite: '^8.3.0' })
+  })
+})
+
+describe('applyExemptions', () => {
+  it('命中例外表的项不出现在 drift 里，改进 exempted 并带上理由', () => {
+    const diff = [{ name: '@types/node', ours: '^26.4.1', theirs: '^24.0.0' }]
+    const { drift, exempted } = applyExemptions(diff, [{ name: '@types/node', reason: '对齐 engines 上限' }])
+    expect(drift).toEqual([])
+    expect(exempted).toEqual([{ name: '@types/node', ours: '^26.4.1', theirs: '^24.0.0', reason: '对齐 engines 上限' }])
+  })
+
+  it('没命中例外表的项留在 drift 里，不受例外表影响', () => {
+    const diff = [{ name: 'vite', ours: '^8.2.2', theirs: '^8.3.0' }]
+    const { drift, exempted } = applyExemptions(diff, [{ name: '@types/node', reason: '对齐 engines 上限' }])
+    expect(drift).toEqual(diff)
+    expect(exempted).toEqual([])
+  })
+})
+
+describe('mirroredTemplates', () => {
+  it('与 FRAMEWORKS 派生的内置模板集合一致（不含 custom-* 与自带上游的 vue-dev）', () => {
+    // 与脚本里的 MIRRORED_TEMPLATES 是不同的源：这里从 FRAMEWORKS 派生，
+    // 不是从被测数据本身派生，所以不是恒等式——改任一边都能让这条断言变红。
+    const builtinTemplates = FRAMEWORKS
+      .flatMap(f => f.variants?.length ? f.variants : [f])
+      .filter(v => !('customCommand' in v && v.customCommand))
+      .map(v => v.name)
+      .filter(name => !OWN_UPSTREAM.includes(name))
+
+    expect([...MIRRORED_TEMPLATES].sort()).toEqual([...builtinTemplates].sort())
   })
 })
